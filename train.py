@@ -92,7 +92,7 @@ if __name__ == "__main__":
     print(f"Device: {device}\n")
 
     # Sur Colab: pointer vers Drive pour ne pas perdre les checkpoints
-    CHECKPOINT_DIR = "/content/drive/MyDrive/PatchTST/checkpoints"
+    CHECKPOINT_DIR = "/content/drive/MyDrive/checkpoints"
     #CHECKPOINT_DIR = "checkpoints"
     for exp in EXPERIMENTS:
         exp["checkpoint_path"] = os.path.join(CHECKPOINT_DIR, os.path.basename(exp["checkpoint_path"]))
