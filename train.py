@@ -83,6 +83,10 @@ def run_experiment(exp, device):
     model.load_state_dict(torch.load(exp["checkpoint_path"]))
     test_mse = evaluate(model, test_loader, criterion, device)
     test_mae = evaluate(model, test_loader, nn.L1Loss(), device)
+
+    del model, optimizer, train_loader, val_loader, test_loader
+    torch.cuda.empty_cache()
+
     return test_mse, test_mae
 
 
