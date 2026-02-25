@@ -101,16 +101,13 @@ class PatchTSTEmbedding(nn.Module):
         """
         super().__init__()
         self.projection= nn.Linear(config.patch_length, config.d_model)
-        self.dropout= nn.Dropout(config.dropout)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor: 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         :param x: (batch_size, num_channels, num_patches, patch_length)
         :return:  (batch_size, num_channels, num_patches, d_model)
         """
-        x=self.projection(x)  # (batch, channels, num_patches, d_model)
-        x=self.dropout(x)
-        return x
+        return self.projection(x)
         
 class PatchTSTPositionalEncoding(nn.Module):
     """
@@ -167,7 +164,7 @@ class PatchTSTEncoderLayer(nn.Module):
         :param config: PatchTSTConfig object
         """
         super().__init__()
-        self.self_attn=nn.MultiheadAttention(config.d_model, config.num_heads, dropout=config.dropout, batch_first=True)
+        self.self_attn=nn.MultiheadAttention(config.d_model, config.num_heads, dropout=0., batch_first=True)
         self.norm1=PatchTSTBatchNorm(config)
         self.norm2=PatchTSTBatchNorm(config)
 

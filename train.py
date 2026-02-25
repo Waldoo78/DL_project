@@ -5,6 +5,7 @@ import pandas as pd
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from configs import EXPERIMENTS
 from dataset import TimeSeriesDataset
 from models.PatchTST import PatchTST, PatchTSTConfig
 
@@ -34,47 +35,74 @@ def evaluate(model, loader, criterion, device):
     return total_loss / len(loader)
 
 
-if __name__ == "__main__":
-    # Config
-    data_path      = "dataset/weather/weather.csv"
-    checkpoint_path = "checkpoints/patchtst_weather.pth"
-    epochs         = 100
-    batch_size     = 128
-    learning_rate  = 1e-4
-    device         = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def run_experiment(exp, device):
+    if not os.path.exists(exp["data_path"]):
+        print(f"[skip] {exp['name']}: {exp['data_path']} not found")
+        return None, None
 
-    num_channels = pd.read_csv(data_path, nrows=0).shape[1] - 1 
-    config = PatchTSTConfig(num_channels=num_channels)
+    num_channels = pd.read_csv(exp["data_path"], nrows=0).shape[1] - 1
+    config = PatchTSTConfig(
+        num_channels=num_channels,
+        context_length=exp["context_length"],
+        patch_length=exp["patch_length"],
+        patch_stride=exp["patch_stride"],
+        d_model=exp["d_model"],
+        num_heads=exp["num_heads"],
+        ffn_dim=exp["ffn_dim"],
+        dropout=exp["dropout"],
+        prediction_length=exp["prediction_length"],
+    )
 
-    # Datasets & DataLoaders
-    train_loader = DataLoader(TimeSeriesDataset(data_path, config.context_length, config.prediction_length, "train"), batch_size=batch_size, shuffle=True)
-    val_loader   = DataLoader(TimeSeriesDataset(data_path, config.context_length, config.prediction_length, "val"),   batch_size=batch_size, shuffle=False)
-    test_loader  = DataLoader(TimeSeriesDataset(data_path, config.context_length, config.prediction_length, "test"),  batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(
+        TimeSeriesDataset(exp["data_path"], config.context_length, config.prediction_length, "train"),
+        batch_size=exp["batch_size"], shuffle=True,
+    )
+    val_loader = DataLoader(
+        TimeSeriesDataset(exp["data_path"], config.context_length, config.prediction_length, "val"),
+        batch_size=exp["batch_size"], shuffle=False,
+    )
+    test_loader = DataLoader(
+        TimeSeriesDataset(exp["data_path"], config.context_length, config.prediction_length, "test"),
+        batch_size=exp["batch_size"], shuffle=False,
+    )
 
-    # Model
     model     = PatchTST(config).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=exp["learning_rate"])
     criterion = nn.MSELoss()
-
-    # Load checkpoint if exists
     os.makedirs("checkpoints", exist_ok=True)
-    if os.path.exists(checkpoint_path):
-        model.load_state_dict(torch.load(checkpoint_path))
-        print(f"Loaded checkpoint from {checkpoint_path}")
 
-    # Training loop
     best_val_loss = float("inf")
-    for epoch in range(1, epochs + 1):
+    for epoch in range(1, exp["epochs"] + 1):
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_loss   = evaluate(model, val_loader, criterion, device)
-        print(f"Epoch {epoch:3d} | train_loss: {train_loss:.4f} | val_loss: {val_loss:.4f}")
-
+        print(f"  Epoch {epoch:3d} | train: {train_loss:.4f} | val: {val_loss:.4f}")
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), checkpoint_path)
+            torch.save(model.state_dict(), exp["checkpoint_path"])
 
-    # Test on best checkpoint
-    model.load_state_dict(torch.load(checkpoint_path))
+    model.load_state_dict(torch.load(exp["checkpoint_path"]))
     test_mse = evaluate(model, test_loader, criterion, device)
     test_mae = evaluate(model, test_loader, nn.L1Loss(), device)
-    print(f"\nTest MSE: {test_mse:.4f} | Test MAE: {test_mae:.4f}")
+    return test_mse, test_mae
+
+
+if __name__ == "__main__":
+    torch.manual_seed(2021)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Device: {device}\n")
+
+    results = {}
+    for exp in EXPERIMENTS:
+        print(f"\n{'='*60}")
+        print(f"Experiment: {exp['name']}")
+        print(f"{'='*60}")
+        mse, mae = run_experiment(exp, device)
+        if mse is not None:
+            results[exp["name"]] = (mse, mae)
+            print(f">> {exp['name']} | MSE: {mse:.4f} | MAE: {mae:.4f}")
+
+    print(f"\n{'='*60}")
+    print("RESULTS SUMMARY")
+    print(f"{'='*60}")
+    for name, (mse, mae) in results.items():
+        print(f"{name:25s} | MSE: {mse:.4f} | MAE: {mae:.4f}")
