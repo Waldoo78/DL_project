@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from dataclasses import dataclass
 
 @dataclass
@@ -12,10 +13,10 @@ class PatchTSTConfig:
     patch_stride            : int   = 8
     # Model
     d_model           : int   = 128
-    num_heads         : int   = 8
+    num_heads         : int   = 16
     num_layers        : int   = 3
     ffn_dim           : int   = 256
-    dropout           : float = 0.1
+    dropout           : float = 0.2
     # Norm
     norm_eps          : float = 1e-5
     # Head
@@ -76,16 +77,16 @@ class PatchTSTPatchify(nn.Module):
         super().__init__()
         self.patch_length = config.patch_length
         self.patch_stride = config.patch_stride
-        self.num_patches  = (config.context_length - config.patch_length) // config.patch_stride + 1
+        self.num_patches  = (config.context_length - config.patch_length) // config.patch_stride + 2
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         :param x: (batch_size, sequence_length, num_channels)
         :return:  (batch_size, num_channels, num_patches, patch_length)
         """
-        x = x.transpose(1, 2)                                          # (batch, channels, L)
-        x = x.unfold(dimension=-1, size=self.patch_length, step=self.patch_stride)
-        # (batch, channels, num_patches, patch_length)
+        x = x.transpose(1, 2)                                                      # (batch, channels, L)
+        x = F.pad(x, (0, self.patch_stride), mode='replicate')                     # (batch, channels, L+S)
+        x = x.unfold(dimension=-1, size=self.patch_length, step=self.patch_stride) # (batch, channels, 42, 16)
         return x
 
 class PatchTSTEmbedding(nn.Module):
