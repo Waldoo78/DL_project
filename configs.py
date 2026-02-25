@@ -29,12 +29,14 @@ EXPERIMENTS = []
 
 for p in [96, 192, 336, 720]:
     EXPERIMENTS += [
-        _exp(f"ETTh1_{p}", "dataset/ett/ETTh1.csv",     _ETTh,  p),
-        _exp(f"ETTh2_{p}", "dataset/ett/ETTh2.csv",     _ETTh,  p),
-        _exp(f"ETTm1_{p}", "dataset/ett/ETTm1.csv",     _ETTm,  p),
-        _exp(f"ETTm2_{p}", "dataset/ett/ETTm2.csv",     _ETTm,  p),
-        _exp(f"Weather_{p}", "dataset/weather/weather.csv", _large, p),
-        _exp(f"Exchange_{p}", "dataset/exchange_rate/exchange_rate.csv", _large, p),
+        _exp(f"ETTh1_{p}",    "dataset/ett/ETTh1.csv",                          _ETTh,  p),
+        _exp(f"ETTh2_{p}",    "dataset/ett/ETTh2.csv",                          _ETTh,  p),
+        _exp(f"ETTm1_{p}",    "dataset/ett/ETTm1.csv",                          _ETTm,  p),
+        _exp(f"ETTm2_{p}",    "dataset/ett/ETTm2.csv",                          _ETTm,  p),
+        _exp(f"Weather_{p}",  "dataset/weather/weather.csv",                    _large, p),
+        _exp(f"Exchange_{p}", "dataset/exchange_rate/exchange_rate.csv",         _large, p),
+        _exp(f"Traffic_{p}",  "dataset/traffic/traffic.csv",                    _large, p, epochs=50),
+        _exp(f"Electricity_{p}", "dataset/electricity/electricity.csv",         _large, p, epochs=50),
     ]
 
 for p in [24, 36, 48, 60]:

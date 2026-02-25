@@ -91,9 +91,10 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}\n")
 
-    # Sur Colab: pointer vers Drive pour ne pas perdre les checkpoints
-    CHECKPOINT_DIR = "/content/drive/MyDrive/checkpoints"
-    #CHECKPOINT_DIR = "checkpoints"
+    if os.path.exists("/kaggle/working"):
+        CHECKPOINT_DIR = "/kaggle/working/checkpoints"           # Kaggle
+    else:
+        CHECKPOINT_DIR = "checkpoints"                           # local
     for exp in EXPERIMENTS:
         exp["checkpoint_path"] = os.path.join(CHECKPOINT_DIR, os.path.basename(exp["checkpoint_path"]))
 
