@@ -69,7 +69,7 @@ def run_experiment(exp, device):
     model     = PatchTST(config).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=exp["learning_rate"])
     criterion = nn.MSELoss()
-    os.makedirs("checkpoints", exist_ok=True)
+    os.makedirs(os.path.dirname(exp["checkpoint_path"]), exist_ok=True)
 
     best_val_loss = float("inf")
     for epoch in range(1, exp["epochs"] + 1):
@@ -90,6 +90,12 @@ if __name__ == "__main__":
     torch.manual_seed(2021)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}\n")
+
+    # Sur Colab: pointer vers Drive pour ne pas perdre les checkpoints
+    CHECKPOINT_DIR = "/content/drive/MyDrive/PatchTST/checkpoints"
+    #CHECKPOINT_DIR = "checkpoints"
+    for exp in EXPERIMENTS:
+        exp["checkpoint_path"] = os.path.join(CHECKPOINT_DIR, os.path.basename(exp["checkpoint_path"]))
 
     results = {}
     for exp in EXPERIMENTS:
