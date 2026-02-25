@@ -36,14 +36,14 @@ def evaluate(model, loader, criterion, device):
 
 if __name__ == "__main__":
     # Config
-    data_path      = "dataset/exchange_rate/exchange_rate.csv"
-    checkpoint_path = "checkpoints/patchtst_exchange.pth"
+    data_path      = "dataset/weather/weather.csv"
+    checkpoint_path = "checkpoints/patchtst_weather.pth"
     epochs         = 100
     batch_size     = 128
     learning_rate  = 1e-4
     device         = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    num_channels = pd.read_csv(data_path, nrows=0).shape[1] - 1  # -1 pour exclure 'date'
+    num_channels = pd.read_csv(data_path, nrows=0).shape[1] - 1 
     config = PatchTSTConfig(num_channels=num_channels)
 
     # Datasets & DataLoaders
@@ -75,5 +75,6 @@ if __name__ == "__main__":
 
     # Test on best checkpoint
     model.load_state_dict(torch.load(checkpoint_path))
-    test_loss = evaluate(model, test_loader, criterion, device)
-    print(f"\nTest MSE: {test_loss:.4f}")
+    test_mse = evaluate(model, test_loader, criterion, device)
+    test_mae = evaluate(model, test_loader, nn.L1Loss(), device)
+    print(f"\nTest MSE: {test_mse:.4f} | Test MAE: {test_mae:.4f}")
