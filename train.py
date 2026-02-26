@@ -4,22 +4,25 @@ import torch.nn as nn
 import pandas as pd
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from torch.amp import autocast, GradScaler
 
 from configs import EXPERIMENTS
 from dataset import TimeSeriesDataset
 from models.PatchTST import PatchTST, PatchTSTConfig
 
 
-def train_one_epoch(model, loader, optimizer, criterion, device):
+def train_one_epoch(model, loader, optimizer, criterion, device, scaler):
     model.train()
     total_loss = 0.0
     for x, y in tqdm(loader, desc="train", leave=False):
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
-        pred = model(x)
-        loss = criterion(pred, y)
-        loss.backward()
-        optimizer.step()
+        with autocast(device_type="cuda"):
+            pred = model(x)
+            loss = criterion(pred, y)
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
         total_loss += loss.item()
     return total_loss / len(loader)
 
@@ -69,11 +72,12 @@ def run_experiment(exp, device):
     model     = PatchTST(config).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=exp["learning_rate"])
     criterion = nn.MSELoss()
+    scaler    = GradScaler()
     os.makedirs(os.path.dirname(exp["checkpoint_path"]), exist_ok=True)
 
     best_val_loss = float("inf")
     for epoch in range(1, exp["epochs"] + 1):
-        train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
+        train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device, scaler)
         val_loss   = evaluate(model, val_loader, criterion, device)
         print(f"  Epoch {epoch:3d} | train: {train_loss:.4f} | val: {val_loss:.4f}")
         if val_loss < best_val_loss:
