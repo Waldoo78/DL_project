@@ -39,6 +39,9 @@ def evaluate(model, loader, criterion, device):
 
 
 def run_experiment(exp, device):
+    if exp.get("done"):
+        print(f"[skip] {exp['name']}: already done")
+        return None, None
     if not os.path.exists(exp["data_path"]):
         print(f"[skip] {exp['name']}: {exp['data_path']} not found")
         return None, None
@@ -69,7 +72,7 @@ def run_experiment(exp, device):
         batch_size=exp["batch_size"], shuffle=False,
     )
 
-    model     = torch.compile(PatchTST(config).to(device))
+    model     = PatchTST(config).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=exp["learning_rate"])
     criterion = nn.MSELoss()
     scaler    = GradScaler()
