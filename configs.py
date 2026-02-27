@@ -42,7 +42,3 @@ for p in [96, 192, 336, 720]:
         _exp(f"Electricity_{p}", "dataset/electricity/electricity.csv",         _electricity, p, epochs=50),
     ]
 
-for p in [24, 36, 48, 60]:
-    EXPERIMENTS.append(
-        _exp(f"ILI_{p}", "dataset/illness/national_illness.csv", _ILI, p),
-    )

@@ -69,7 +69,7 @@ def run_experiment(exp, device):
         batch_size=exp["batch_size"], shuffle=False,
     )
 
-    model     = PatchTST(config).to(device)
+    model     = torch.compile(PatchTST(config).to(device))
     optimizer = torch.optim.Adam(model.parameters(), lr=exp["learning_rate"])
     criterion = nn.MSELoss()
     scaler    = GradScaler()
@@ -97,6 +97,7 @@ def run_experiment(exp, device):
 if __name__ == "__main__":
     torch.manual_seed(2021)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    torch.backends.cudnn.benchmark = True
     print(f"Device: {device}\n")
 
     if os.path.exists("/kaggle/working"):
