@@ -1,9 +1,3 @@
-import os
-
-_KAGGLE    = os.path.exists("/kaggle/input")
-_DATA_ROOT = "/kaggle/input/time_series/dataset" if _KAGGLE else ""
-_d         = lambda p: os.path.join(_DATA_ROOT, p) if _KAGGLE else p
-
 _ETTh = dict(context_length=336, patch_length=16, patch_stride=8,
              d_model=16, num_heads=4, ffn_dim=128, dropout=0.2,
              batch_size=128, learning_rate=1e-4)
@@ -34,11 +28,11 @@ EXPERIMENTS = []
 
 for p in [96, 192, 336]:
     EXPERIMENTS += [
-        _exp(f"ETTh1_{p}",       _d("dataset/ett/ETTh1.csv"),                  _ETTh,        p),
-        _exp(f"ETTh2_{p}",       _d("dataset/ett/ETTh2.csv"),                  _ETTh,        p),
-        _exp(f"ETTm1_{p}",       _d("dataset/ett/ETTm1.csv"),                  _ETTm,        p),
-        _exp(f"ETTm2_{p}",       _d("dataset/ett/ETTm2.csv"),                  _ETTm,        p),
-        _exp(f"Weather_{p}",     _d("dataset/weather/weather.csv"),             _large,       p),
-        _exp(f"Exchange_{p}",    _d("dataset/exchange_rate/exchange_rate.csv"), _large,       p),
-        _exp(f"Electricity_{p}", _d("dataset/electricity/electricity.csv"),     _electricity, p, epochs=50),
+        _exp(f"ETTh1_{p}",       "dataset/ett/ETTh1.csv",                  _ETTh,        p),
+        _exp(f"ETTh2_{p}",       "dataset/ett/ETTh2.csv",                  _ETTh,        p),
+        _exp(f"ETTm1_{p}",       "dataset/ett/ETTm1.csv",                  _ETTm,        p),
+        _exp(f"ETTm2_{p}",       "dataset/ett/ETTm2.csv",                  _ETTm,        p),
+        _exp(f"Weather_{p}",     "dataset/weather/weather.csv",             _large,       p),
+        _exp(f"Exchange_{p}",    "dataset/exchange_rate/exchange_rate.csv", _large,       p),
+        _exp(f"Electricity_{p}", "dataset/electricity/electricity.csv",     _electricity, p, epochs=50),
     ]

@@ -9,11 +9,10 @@ from dataset import TimeSeriesDataset
 from models.PatchTST import PatchTST, PatchTSTConfig
 from configs import EXPERIMENTS
 
-_KAGGLE        = os.path.exists("/kaggle/input")
-CHECKPOINT_DIR = "/kaggle/input/time_series/checkpoints"          if _KAGGLE else "checkpoints"
-OUTPUT_FILE    = "/kaggle/working/results/patchtst.json"           if _KAGGLE else "results/patchtst.json"
+CHECKPOINT_DIR = "checkpoints"
+OUTPUT_FILE    = "results/patchtst.json"
 
-os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+os.makedirs("results", exist_ok=True)
 
 results = {}
 device  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
