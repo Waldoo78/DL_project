@@ -35,14 +35,14 @@ DONE_192 = dict(done=True)
 
 EXPERIMENTS = []
 
-for p in [96, 192, 336, 720]:
+for p in [96, 192, 336]:
     EXPERIMENTS += [
-        _exp(f"ETTh1_{p}",       "dataset/ett/ETTh1.csv",                  _ETTh,        p, done=(p in [96, 192])),
-        _exp(f"ETTh2_{p}",       "dataset/ett/ETTh2.csv",                  _ETTh,        p, done=(p in [96, 192])),
-        _exp(f"ETTm1_{p}",       "dataset/ett/ETTm1.csv",                  _ETTm,        p, done=(p in [96, 192])),
-        _exp(f"ETTm2_{p}",       "dataset/ett/ETTm2.csv",                  _ETTm,        p, done=(p in [96, 192])),
-        _exp(f"Weather_{p}",     "dataset/weather/weather.csv",             _large,       p, done=(p == 96)),
-        _exp(f"Exchange_{p}",    "dataset/exchange_rate/exchange_rate.csv", _large,       p, done=(p == 96)),
-        _exp(f"Electricity_{p}", "dataset/electricity/electricity.csv",     _electricity, p, done=(p == 96), epochs=50),
+        _exp(f"ETTh1_{p}",       "dataset/ett/ETTh1.csv",                  _ETTh,        p, done=(p in [96, 192, 336])),
+        _exp(f"ETTh2_{p}",       "dataset/ett/ETTh2.csv",                  _ETTh,        p, done=(p in [96, 192, 336])),
+        _exp(f"ETTm1_{p}",       "dataset/ett/ETTm1.csv",                  _ETTm,        p, done=(p in [96, 192, 336])),
+        _exp(f"ETTm2_{p}",       "dataset/ett/ETTm2.csv",                  _ETTm,        p, done=(p in [96, 192, 336])),
+        _exp(f"Weather_{p}",     "dataset/weather/weather.csv",             _large,       p, done=(p in [96, 192, 336])),
+        _exp(f"Exchange_{p}",    "dataset/exchange_rate/exchange_rate.csv", _large,       p, done=(p in [96, 192])),
+        _exp(f"Electricity_{p}", "dataset/electricity/electricity.csv",     _electricity, p, done=(p in [96, 192]), epochs=50),
     ]
 
