@@ -39,9 +39,6 @@ def evaluate(model, loader, criterion, device):
 
 
 def run_experiment(exp, device):
-    if exp.get("done"):
-        print(f"[skip] {exp['name']}: already done")
-        return None, None
     if not os.path.exists(exp["data_path"]):
         print(f"[skip] {exp['name']}: {exp['data_path']} not found")
         return None, None
@@ -87,7 +84,7 @@ def run_experiment(exp, device):
             best_val_loss = val_loss
             torch.save(model.state_dict(), exp["checkpoint_path"])
 
-    model.load_state_dict(torch.load(exp["checkpoint_path"]))
+    model.load_state_dict(torch.load(exp["checkpoint_path"], weights_only=True))
     test_mse = evaluate(model, test_loader, criterion, device)
     test_mae = evaluate(model, test_loader, nn.L1Loss(), device)
 
@@ -103,10 +100,7 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
     print(f"Device: {device}\n")
 
-    if os.path.exists("/kaggle/working"):
-        CHECKPOINT_DIR = "/kaggle/working/checkpoints"           # Kaggle
-    else:
-        CHECKPOINT_DIR = "checkpoints"                           # local
+    CHECKPOINT_DIR = "checkpoints"
     for exp in EXPERIMENTS:
         exp["checkpoint_path"] = os.path.join(CHECKPOINT_DIR, os.path.basename(exp["checkpoint_path"]))
 
