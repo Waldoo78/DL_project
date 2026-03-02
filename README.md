@@ -110,7 +110,14 @@ Loads trained checkpoints and evaluates on the test set. Results are saved to `r
 python baseline.py
 ```
 
-Runs Ridge regression with seasonal-trend decomposition on all datasets. Results are saved to `results/baselines.json`.
+The baseline operates per-channel (channel-independent, like PatchTST) and follows these steps:
+
+1. **Instance normalization**: subtract the per-window mean from both input and target
+2. **Multi-scale decomposition**: apply causal moving averages at 3 scales (kernel sizes 25, 100, 200) to extract trend components, plus the residual (seasonal) from the finest scale
+3. **Ridge regression**: fit a single linear model from the concatenated trend + seasonal features to the prediction horizon
+4. **Denormalization**: add back the per-window mean
+
+This is a strong baseline — it captures the same kind of trend/seasonal structure that transformers learn, but with a closed-form solution and no training loop. Results are saved to `results/baselines.json`.
 
 ### Explore results
 
