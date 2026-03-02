@@ -84,7 +84,7 @@ dataset/
 pip install -r requirements.txt
 ```
 
-Requires Python 3.10+ and a CUDA-capable GPU for training (CPU works but is slow).
+Requires Python 3.10+.
 
 ## Usage
 
