@@ -9,9 +9,9 @@ A PyTorch implementation of **PatchTST** (Patch Time Series Transformer) for mul
 ```
 Input (B, L, C)
       |
-   RevIN  ───────────────────────────────────┐
+   RevIN  ────────────────────────────────────┐
       |                                       |
-  Patchify  (B, C, N, P)                     |
+  Patchify  (B, C, N, P)                      |
       |                                       |
   Patch Embedding  W_p * x_p                  |
       |                                       |
@@ -21,12 +21,12 @@ Input (B, L, C)
   ┌─────────────────────────────┐             |
   │  Multi-Head Self-Attention  │             |
   │  + Add & BatchNorm          │             |
-  │  FFN (Linear → GELU → Lin) │             |
+  │  FFN (Linear → GELU → Lin)  │             |
   │  + Add & BatchNorm          │             |
   └─────────────────────────────┘             |
       |                                       |
   Prediction Head                             |
-  Flatten → Linear  (B, H, C)                |
+  Flatten → Linear  (B, H, C)                 |
       |                                       |
    RevIN denorm  ←────────────────────────────┘
       |
