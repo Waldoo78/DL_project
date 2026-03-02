@@ -1,5 +1,4 @@
 import json
-import os
 import torch
 import torch.nn as nn
 import pandas as pd
@@ -12,21 +11,12 @@ from configs import EXPERIMENTS
 CHECKPOINT_DIR = "checkpoints"
 OUTPUT_FILE    = "results/patchtst.json"
 
-os.makedirs("results", exist_ok=True)
-
 results = {}
 device  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 for exp in EXPERIMENTS:
     name = exp["name"]
-    ckpt = os.path.join(CHECKPOINT_DIR, f"patchtst_{name.lower()}.pth")
-
-    if not os.path.exists(ckpt):
-        print(f"[skip] {name}: checkpoint not found")
-        continue
-    if not os.path.exists(exp["data_path"]):
-        print(f"[skip] {name}: data not found")
-        continue
+    ckpt = f"{CHECKPOINT_DIR}/patchtst_{name.lower()}.pth"
 
     num_channels = pd.read_csv(exp["data_path"], nrows=0).shape[1] - 1
     config = PatchTSTConfig(

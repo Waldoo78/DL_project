@@ -39,10 +39,6 @@ def evaluate(model, loader, criterion, device):
 
 
 def run_experiment(exp, device):
-    if not os.path.exists(exp["data_path"]):
-        print(f"[skip] {exp['name']}: {exp['data_path']} not found")
-        return None, None
-
     num_channels = pd.read_csv(exp["data_path"], nrows=0).shape[1] - 1
     config = PatchTSTConfig(
         num_channels=num_channels,
@@ -73,7 +69,6 @@ def run_experiment(exp, device):
     optimizer = torch.optim.Adam(model.parameters(), lr=exp["learning_rate"])
     criterion = nn.MSELoss()
     scaler    = GradScaler()
-    os.makedirs(os.path.dirname(exp["checkpoint_path"]), exist_ok=True)
 
     best_val_loss = float("inf")
     for epoch in range(1, exp["epochs"] + 1):

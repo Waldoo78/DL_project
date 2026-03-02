@@ -100,7 +100,7 @@ class PatchTSTEmbedding(nn.Module):
         :param config: PatchTSTConfig object
         """
         super().__init__()
-        self.projection= nn.Linear(config.patch_length, config.d_model)
+        self.projection = nn.Linear(config.patch_length, config.d_model)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -111,8 +111,8 @@ class PatchTSTEmbedding(nn.Module):
         
 class PatchTSTPositionalEncoding(nn.Module):
     """
-    Leaarnable positional encoding for the patches.
-    paper: x_d= Wp * xp +Wpo
+    Learnable positional encoding for the patches.
+    paper: x_d = Wp * xp + Wpos
     """
 
     def __init__(self, config: PatchTSTConfig, num_patches: int):
@@ -120,61 +120,59 @@ class PatchTSTPositionalEncoding(nn.Module):
         :param config: PatchTSTConfig object
         """
         super().__init__()
-        Wpos=torch.empty(num_patches,config.d_model)
-        nn.init.uniform_(Wpos, -0.02, 0.02) # Initialize Wpos with small random values
-        self.positional_encoding = nn.Parameter(Wpos, requires_grad=True) #learnable
-        self.dropout= nn.Dropout(config.dropout)
+        Wpos = torch.empty(num_patches, config.d_model)
+        nn.init.uniform_(Wpos, -0.02, 0.02)
+        self.positional_encoding = nn.Parameter(Wpos, requires_grad=True)
+        self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         :param x: (batch_size, num_channels, num_patches, d_model)
         :return:  (batch_size, num_channels, num_patches, d_model)
         """
-        x=self.dropout(x + self.positional_encoding)  # (batch, channels, num_patches, d_model)
+        x = self.dropout(x + self.positional_encoding)
         return x
 
 
 class PatchTSTBatchNorm(nn.Module):
     """
     BatchNorm across the channel dimension for each patch.
-    paper: x_d= Wp * xp +Wpo
     """
 
-    def __init__(self,config: PatchTSTConfig):
+    def __init__(self, config: PatchTSTConfig):
         """
         :param config: PatchTSTConfig object
         """
         super().__init__()
-        self.batchnorm=nn.BatchNorm1d(config.d_model, eps=config.norm_eps)
+        self.batchnorm = nn.BatchNorm1d(config.d_model, eps=config.norm_eps)
 
-    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         :param x: (batch_size*num_channels, num_patches, d_model)
         :return:  (batch_size*num_channels, num_patches, d_model)
         """
-        x=x.transpose(1, 2)  # (batch*channels, d_model, num_patches)
-        x=self.batchnorm(x)  
-        return x.transpose(1, 2)  # (batch*channels, num_patches, d_model)
+        x = x.transpose(1, 2)
+        x = self.batchnorm(x)
+        return x.transpose(1, 2)
     
 class PatchTSTEncoderLayer(nn.Module):
 
-    def __init__(self,config:PatchTSTConfig):
+    def __init__(self, config: PatchTSTConfig):
         """
         :param config: PatchTSTConfig object
         """
         super().__init__()
-        self.self_attn=nn.MultiheadAttention(config.d_model, config.num_heads, dropout=0., batch_first=True)
-        self.norm1=PatchTSTBatchNorm(config)
-        self.norm2=PatchTSTBatchNorm(config)
+        self.self_attn = nn.MultiheadAttention(config.d_model, config.num_heads, dropout=0., batch_first=True)
+        self.norm1 = PatchTSTBatchNorm(config)
+        self.norm2 = PatchTSTBatchNorm(config)
 
-        self.ff=nn.Sequential(
+        self.ff = nn.Sequential(
             nn.Linear(config.d_model, config.ffn_dim),
             nn.GELU(),
             nn.Dropout(config.dropout),
             nn.Linear(config.ffn_dim, config.d_model),
         )
-        self.dropout=nn.Dropout(config.dropout)
+        self.dropout = nn.Dropout(config.dropout)
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -241,10 +239,10 @@ class PatchTSTHead(nn.Module):
         :param x: (batch_size, num_channels, num_patches, d_model)
         :return:  (batch_size, num_channels, prediction_length)
         """
-        x=self.flatten(x)  # (batch_size, num_channels, num_patches*d_model)
-        x=self.dropout(x)
-        x=self.projection(x)  # (batch_size, num_channels, prediction_length)
-        return x.transpose(1,2) # (batch_size, prediction_length, num_channels)
+        x = self.flatten(x)      # (batch_size, num_channels, num_patches*d_model)
+        x = self.dropout(x)
+        x = self.projection(x)   # (batch_size, num_channels, prediction_length)
+        return x.transpose(1, 2) # (batch_size, prediction_length, num_channels)
     
 
 class PatchTST(nn.Module):

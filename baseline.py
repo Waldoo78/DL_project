@@ -3,88 +3,105 @@ import numpy as np
 import pandas as pd
 from numpy.lib.stride_tricks import sliding_window_view
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
 
 EVALUATE = {
-    "ETTh1":       {"path": "dataset/ett/ETTh1.csv",                      "horizons": [96, 192, 336]},
-    "ETTh2":       {"path": "dataset/ett/ETTh2.csv",                      "horizons": [96, 192, 336]},
-    "ETTm1":       {"path": "dataset/ett/ETTm1.csv",                      "horizons": [96, 192, 336]},
-    "ETTm2":       {"path": "dataset/ett/ETTm2.csv",                      "horizons": [96, 192, 336]},
-    "Weather":     {"path": "dataset/weather/weather.csv",                "horizons": [96, 192, 336]},
-    "Exchange":    {"path": "dataset/exchange_rate/exchange_rate.csv",    "horizons": [96, 192, 336]},
-    "Electricity": {"path": "dataset/electricity/electricity.csv",        "horizons": [96, 192, 336]},
+    "ETTh1":       {"path": "dataset/ett/ETTh1.csv",                       "horizons": [96, 192, 336, 720]},
+    "ETTh2":       {"path": "dataset/ett/ETTh2.csv",                       "horizons": [96, 192, 336, 720]},
+    "ETTm1":       {"path": "dataset/ett/ETTm1.csv",                       "horizons": [96, 192, 336, 720]},
+    "ETTm2":       {"path": "dataset/ett/ETTm2.csv",                       "horizons": [96, 192, 336, 720]},
+    "Weather":     {"path": "dataset/weather/weather.csv",                 "horizons": [96, 192, 336, 720]},
+    "Exchange":    {"path": "dataset/exchange_rate/exchange_rate.csv",     "horizons": [96, 192, 336, 720]},
+    "Electricity": {"path": "dataset/electricity/electricity.csv",         "horizons": [96, 192, 336, 720]},
 }
-CONTEXT_LENGTH = 336
-OUTPUT_FILE    = "results/baselines.json"
 
-SEASON = {
-    "ETTh1": 24, "ETTh2": 24,
-    "ETTm1": 96, "ETTm2": 96,
-    "Weather": 144, "Electricity": 24,
-    "Exchange": None,
-}
+OUTPUT_FILE = "results/baselines.json"
+CTX = 336
+MA_KERNEL = 25
+MA_KERNELS = [MA_KERNEL, MA_KERNEL * 4, MA_KERNEL * 8]
 
 
 def _get_borders(path, n):
     if "ETTh" in path:
-        return 12*30*24, 12*30*24+4*30*24, 12*30*24+8*30*24
+        return 12 * 30 * 24, 12 * 30 * 24 + 4 * 30 * 24, 12 * 30 * 24 + 8 * 30 * 24
     elif "ETTm" in path:
-        return 12*30*24*4, 12*30*24*4+4*30*24*4, 12*30*24*4+8*30*24*4
+        return 12 * 30 * 24 * 4, 12 * 30 * 24 * 4 + 4 * 30 * 24 * 4, 12 * 30 * 24 * 4 + 8 * 30 * 24 * 4
     else:
-        return int(n*0.7), int(n*0.8), n
+        return int(n * 0.7), int(n * 0.8), n
 
 
-def run_naive(name, path, pred_len):
-    df_raw    = pd.read_csv(path)
-    data      = df_raw.drop(columns=["date"]).values.astype(np.float32)
-    n         = len(data)
+def _load(path):
+    df_raw = pd.read_csv(path)
+    data = df_raw.drop(columns=["date"]).values.astype(np.float32)
+    n = len(data)
     train_end, val_end, test_end = _get_borders(path, n)
-
     scaler = StandardScaler()
     scaler.fit(data[:train_end])
     data = scaler.transform(data).astype(np.float32)
+    return data, train_end, val_end, test_end
 
-    ctx    = CONTEXT_LENGTH
-    n_te   = test_end - val_end - pred_len + 1
-    period = SEASON.get(name)
 
-    ctx_all = sliding_window_view(data[val_end - ctx : val_end - ctx + n_te + ctx - 1],
-                                  ctx, axis=0)   # (n_te, C, ctx)
-    tgt_all = sliding_window_view(data[val_end : val_end + n_te + pred_len - 1],
-                                  pred_len, axis=0)   # (n_te, C, pred_len)
+def _windows(data_c, start, n_win, ctx, pred_len):
+    ctx_mat = sliding_window_view(data_c[start : start + n_win + ctx - 1], ctx)
+    tgt_mat = sliding_window_view(data_c[start + ctx : start + ctx + n_win + pred_len - 1], pred_len)
+    return ctx_mat.astype(np.float32), tgt_mat.astype(np.float32)
 
-    # Naive
-    last     = ctx_all[:, :, -1]
-    yp_naive = np.repeat(last[:, :, None], pred_len, axis=2)
-    mse_naive = float(np.mean((yp_naive - tgt_all) ** 2))
-    mae_naive = float(np.mean(np.abs(yp_naive - tgt_all)))
 
-    # Seasonal Naive
-    if period is not None and period <= ctx:
-        last_season = ctx_all[:, :, -period:]
-        repeats     = (pred_len + period - 1) // period
-        yp_sn       = np.tile(last_season, (1, 1, repeats))[:, :, :pred_len]
-        mse_sn = float(np.mean((yp_sn - tgt_all) ** 2))
-        mae_sn = float(np.mean(np.abs(yp_sn - tgt_all)))
-    else:
-        mse_sn, mae_sn = mse_naive, mae_naive
+def _moving_avg(mat, k):
+    padded = np.concatenate([np.tile(mat[:, :1], (1, k - 1)), mat], axis=1)
+    cs = np.concatenate(
+        [np.zeros((mat.shape[0], 1), dtype=mat.dtype), np.cumsum(padded, axis=1)], axis=1
+    )
+    return (cs[:, k:] - cs[:, :-k]) / k
 
-    return mse_naive, mae_naive, mse_sn, mae_sn
+
+def run_linear_baseline(path, pred_len):
+    data, train_end, val_end, test_end = _load(path)
+    C = data.shape[1]
+    n_tr = train_end - CTX - pred_len + 1
+    n_te = test_end - val_end - pred_len + 1
+    ks = sorted({min(k, CTX) for k in MA_KERNELS})
+
+    mse_list, mae_list = [], []
+
+    for c in range(C):
+        dc = data[:, c]
+
+        X_tr, Y_tr = _windows(dc, 0, n_tr, CTX, pred_len)
+        mus_tr = X_tr.mean(axis=1, keepdims=True)
+        X_tr_c = X_tr - mus_tr
+        Y_tr_c = Y_tr - mus_tr
+        T_tr_list = [_moving_avg(X_tr_c, k) for k in ks]
+        S_tr = X_tr_c - T_tr_list[0]
+
+        X_te, Y_te = _windows(dc, val_end - CTX, n_te, CTX, pred_len)
+        mus_te = X_te.mean(axis=1, keepdims=True)
+        X_te_c = X_te - mus_te
+        T_te_list = [_moving_avg(X_te_c, k) for k in ks]
+        S_te = X_te_c - T_te_list[0]
+
+        TS_tr = np.hstack(T_tr_list + [S_tr])
+        TS_te = np.hstack(T_te_list + [S_te])
+        Y_pred_c = Ridge(alpha=1.0).fit(TS_tr, Y_tr_c).predict(TS_te)
+
+        Y_pred = Y_pred_c + mus_te
+
+        mse_list.append(float(np.mean((Y_pred - Y_te) ** 2)))
+        mae_list.append(float(np.mean(np.abs(Y_pred - Y_te))))
+
+    return float(np.mean(mse_list)), float(np.mean(mae_list))
 
 
 if __name__ == "__main__":
-    import os
-    os.makedirs("results", exist_ok=True)
-
     results = {}
 
     for name, cfg in EVALUATE.items():
         for pred_len in cfg["horizons"]:
             key = f"{name}_{pred_len}"
-            _, _, ms, mas = run_naive(name, cfg["path"], pred_len)
-            results[key] = {"MSE": round(ms, 4), "MAE": round(mas, 4)}
-            print(f"{key:25s}  MSE: {ms:.4f}  MAE: {mas:.4f}")
+            mse, mae = run_linear_baseline(cfg["path"], pred_len)
+            results[key] = {"MSE": round(mse, 4), "MAE": round(mae, 4)}
+            print(f"{key:25s}  MSE={mse:.4f}  MAE={mae:.4f}")
 
     with open(OUTPUT_FILE, "w") as f:
         json.dump(results, f, indent=2)
-
-    print(f"\nSaved → {OUTPUT_FILE}")
+    print(f"\nSaved -> {OUTPUT_FILE}")
